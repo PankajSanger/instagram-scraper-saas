@@ -2,7 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = Number(process.env.WEB_PORT || 3000);
+const PORT = Number(process.env.PORT || process.env.WEB_PORT || 3000);
 const root = path.join(__dirname, 'public');
 
 const contentTypes = {
