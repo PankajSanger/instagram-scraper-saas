@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: commentmint-api
+    env: node
+    rootDir: .
+    buildCommand: "echo API ready"
+    startCommand: "node apps/api/src/server.js"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8080
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGIN
+        value: https://app.yourdomain.com
+      - key: UPI_VPA
+        sync: false
+      - key: UPI_PAYEE_NAME
+        sync: false
+
+  - type: web
+    name: commentmint-web
+    env: node
+    rootDir: .
+    buildCommand: "echo WEB ready"
+    startCommand: "node apps/web/server.js"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: WEB_PORT
+        value: 10000

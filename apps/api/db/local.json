@@ -1,0 +1,64 @@
+{
+  "users": [
+    {
+      "id": "0fc88044-5a51-40ee-8397-f5d5b4f5584f",
+      "email": "pankajs@mobilnxt.com",
+      "passwordHash": "d156e38d01cf68b80a06c07c66d96f40:e3ea59974ffe2652758d327879bf9e2215f7e0a0b63f5c04b066737864bead032d9e2d992588442c974aee3e46b89db69f8cc40da0fd838b724660d64f2859e9",
+      "apiKeyHash": "f2958afc8aefc35bb9c8c11d66494d8a05b92f9fe6f4aab486e354545e44cadb",
+      "createdAt": "2026-03-08T08:19:20.889Z"
+    },
+    {
+      "id": "9339b915-df4b-4a67-9d45-80719a50e5bb",
+      "email": "demo@example.com",
+      "passwordHash": "444b08731b788e6225e829bb42194817:e43d8577019c6a044057cd01c0c2cea480ca3acf1738a99d9e12d01525b12fdd16ffe8b9ca087cc9cbdc91154469b4510496241168d0a1c9abb361fb3bbcdbb9",
+      "apiKeyHash": "668942a95ddb14fc0a7061f227041bf3f83b215736e94124eea4f598c013d658",
+      "createdAt": "2026-03-08T08:31:45.978Z"
+    },
+    {
+      "id": "610275da-844e-46ac-852c-a4cd6c139f5b",
+      "email": "demo2@example.com",
+      "passwordHash": "51702101662006a4752c19911ead028b:aea1f0093d93daaca6ad2899482268cc45b58ce6c27f0a60e02cb7838d6dfef63c3ca6f6f82ae1bf32d105e6fda1aca3ab4b94f1001a9d9668e3a0045e78aa95",
+      "apiKeyHash": "87a072a367f5e286a56965e83960298aa5f191455d1ba5b7aa643a7317dac21f",
+      "createdAt": "2026-03-08T08:32:04.053Z"
+    }
+  ],
+  "jobs": [],
+  "subscriptions": [
+    {
+      "userId": "0fc88044-5a51-40ee-8397-f5d5b4f5584f",
+      "plan": "free",
+      "status": "active",
+      "updatedAt": "2026-03-08T08:19:20.889Z"
+    },
+    {
+      "userId": "9339b915-df4b-4a67-9d45-80719a50e5bb",
+      "plan": "free",
+      "status": "active",
+      "expiresAt": null,
+      "updatedAt": "2026-03-08T08:31:45.979Z"
+    },
+    {
+      "userId": "610275da-844e-46ac-852c-a4cd6c139f5b",
+      "plan": "starter",
+      "status": "active",
+      "expiresAt": "2026-04-07T08:32:04.077Z",
+      "updatedAt": "2026-03-08T08:32:04.077Z"
+    }
+  ],
+  "usage": [],
+  "payments": [
+    {
+      "id": "pay_5bc6ed888e97c156",
+      "userId": "610275da-844e-46ac-852c-a4cd6c139f5b",
+      "plan": "starter",
+      "amountInr": 499,
+      "status": "paid",
+      "upiIntent": "upi://pay?pa=testmerchant%40upi&pn=CommentMint&am=499.00&cu=INR&tn=CommentMint%20starter%20pay_5bc6ed888e97c156&tr=pay_5bc6ed888e97c156",
+      "payeeVpa": "testmerchant@upi",
+      "createdAt": "2026-03-08T08:32:04.071Z",
+      "expiresAt": "2026-03-08T09:02:04.071Z",
+      "utr": "UPI12345678",
+      "confirmedAt": "2026-03-08T08:32:04.077Z"
+    }
+  ]
+}

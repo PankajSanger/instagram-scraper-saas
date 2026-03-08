@@ -1,0 +1,14 @@
+{
+  "name": "instagram-comments-scraper-saas",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "node apps/api/src/server.js",
+    "dev:web": "node apps/web/server.js",
+    "package:extension": "powershell -ExecutionPolicy Bypass -File .\\scripts\\package.ps1"
+  }
+}

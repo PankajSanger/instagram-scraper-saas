@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    :root { --bg1:#1f4fd7; --bg2:#0a2540; }
+    body {
+      width: 380px;
+      padding: 16px;
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: linear-gradient(135deg, var(--bg1), var(--bg2));
+      color: #fff;
+    }
+    h1 { font-size: 16px; margin: 0 0 12px 0; text-align: center; }
+    .card {
+      background: rgba(255,255,255,0.08);
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+    }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+    label { font-size: 13px; }
+    .hint { font-size: 12px; opacity: 0.92; margin-top: 6px; }
+    .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      border: 0;
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 12px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      background: #fff;
+      color: var(--bg1);
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+    }
+    button:disabled { opacity: 0.7; cursor: not-allowed; box-shadow: none; }
+    #statusBox {
+      margin-top: 12px;
+      background: rgba(255,255,255,0.06);
+      padding: 10px;
+      border-radius: 8px;
+      display: none;
+      font-size: 13px;
+    }
+    .progressWrap { display: flex; align-items: center; gap: 8px; }
+    .progressBar {
+      flex: 1;
+      height: 10px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .progressFill { height: 100%; width: 0%; background: white; transition: width .2s; }
+    .small { font-size: 12px; opacity: 0.92; }
+    .eta { font-weight: 700; }
+  </style>
+</head>
+<body>
+  <h1>Instagram Comments Scraper</h1>
+
+  <div class="card">
+    <div class="row">
+      <label for="threadedToggle">Include threaded replies</label>
+      <input id="threadedToggle" type="checkbox" checked />
+    </div>
+
+    <div class="row">
+      <label for="profilesToggle">Fetch commenter profiles (slower)</label>
+      <input id="profilesToggle" type="checkbox" checked />
+    </div>
+
+    <div class="field">
+      <label for="apiUrl">SaaS API URL</label>
+      <input id="apiUrl" type="text" placeholder="http://localhost:8080" />
+    </div>
+
+    <div class="field">
+      <label for="apiKey">API Key (from dashboard)</label>
+      <input id="apiKey" type="password" placeholder="igs_..." />
+    </div>
+
+    <div class="hint">Tip: disable profile enrichment for faster runs. Add API URL and API key to upload jobs to your paid SaaS backend.</div>
+  </div>
+
+  <button id="scrapeBtn">Scrape Comments</button>
+
+  <div id="statusBox">
+    <div id="statusLine" class="small">Status: waiting</div>
+    <div style="height:8px;margin-top:8px" class="progressWrap">
+      <div class="progressBar"><div id="progressFill" class="progressFill"></div></div>
+      <div id="percent" class="small">0%</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px">
+      <div id="phase" class="small">phase: idle</div>
+      <div id="eta" class="small eta">ETA: --:--</div>
+    </div>
+    <div id="detail" class="small" style="margin-top:8px;word-break:break-all"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

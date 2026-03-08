@@ -1,0 +1,9 @@
+# Ignore build artifacts
+/dist/
+/node_modules/
+/.env
+/apps/**/node_modules/
+
+# OS/editor artifacts
+.DS_Store
+Thumbs.db

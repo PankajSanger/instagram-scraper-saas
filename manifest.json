@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Instagram Comments Scraper",
+  "version": "1.5.0",
+  "description": "Scrape Instagram comments to CSV and sync jobs to your paid SaaS workspace.",
+  "minimum_chrome_version": "114",
+  "permissions": ["activeTab", "scripting"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "assets/icons/icon-16.png",
+      "32": "assets/icons/icon-32.png"
+    }
+  },
+  "icons": {
+    "16": "assets/icons/icon-16.png",
+    "32": "assets/icons/icon-32.png",
+    "48": "assets/icons/icon-48.png",
+    "128": "assets/icons/icon-128.png"
+  },
+  "host_permissions": [
+    "https://www.instagram.com/*"
+  ]
+}
+
+
