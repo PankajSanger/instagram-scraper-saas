@@ -43,4 +43,8 @@ function consumeUsage(db, userId, rowsCount) {
   return created;
 }
 
-module.exports = { canConsumeUsage, consumeUsage, getMonthKey };
+function hasConsumedFreePost(db, userId) {
+  return db.jobs.some((j) => j.userId === userId && j.sourceType === 'direct_url');
+}
+
+module.exports = { canConsumeUsage, consumeUsage, getMonthKey, hasConsumedFreePost };

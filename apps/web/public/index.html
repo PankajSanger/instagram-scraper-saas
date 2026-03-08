@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CommentMint - Instagram Comment Export SaaS</title>
+  <title>CommentMint - Fetch Instagram Comments to CSV</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -11,57 +11,42 @@
     <nav class="nav shell">
       <div class="brand">CommentMint</div>
       <div class="nav-actions">
-        <a class="link" href="#onboarding">How it works</a>
-        <a class="link" href="#dashboard">Dashboard</a>
+        <a class="link" href="#how">How it works</a>
+        <a class="link" href="#fetch">Fetch comments</a>
       </div>
     </nav>
 
     <div class="shell hero-grid">
       <div>
-        <p class="eyebrow">India-first UPI billing</p>
-        <h1>Turn Instagram comments into usable customer data.</h1>
-        <p class="hero-copy">Built for creators, agencies, and growth teams. Export comments, track usage, and upgrade plans in a smooth self-serve flow.</p>
+        <p class="eyebrow">No extension required</p>
+        <h1>Paste Instagram post URL. Download comments in CSV.</h1>
+        <p class="hero-copy">Create an account, paste a post URL, fetch comments, and download instantly. Free users get 1 post fetch. Paid users unlock unlimited workflow based on plan.</p>
         <div class="cta-row">
           <button id="showAuth" class="btn btn-primary">Create Free Account</button>
-          <a class="btn btn-ghost" href="#dashboard">View Dashboard</a>
+          <a class="btn btn-ghost" href="#fetch">Start Fetching</a>
         </div>
       </div>
       <aside class="hero-card">
-        <h3>What users do</h3>
+        <h3>Customer journey</h3>
         <ol>
-          <li>Create account and copy API key</li>
-          <li>Add API URL + key in extension</li>
-          <li>Scrape post comments and get CSV + cloud history</li>
-          <li>Upgrade plan via UPI when needed</li>
+          <li>Create account</li>
+          <li>Paste Instagram post URL</li>
+          <li>Click fetch and download CSV</li>
+          <li>Free plan works for 1 post only</li>
+          <li>Upgrade via UPI to continue</li>
         </ol>
       </aside>
     </div>
   </header>
 
   <main>
-    <section id="onboarding" class="section shell">
-      <h2>Onboarding flow</h2>
+    <section id="how" class="section shell">
+      <h2>How it works</h2>
       <div class="steps">
-        <article class="panel step">
-          <span class="step-index">01</span>
-          <h3>Sign up</h3>
-          <p>Create your account to get secure dashboard access.</p>
-        </article>
-        <article class="panel step">
-          <span class="step-index">02</span>
-          <h3>Connect extension</h3>
-          <p>Paste API URL and API key in extension popup once.</p>
-        </article>
-        <article class="panel step">
-          <span class="step-index">03</span>
-          <h3>Run scraper</h3>
-          <p>Export CSV locally and push job metadata to dashboard.</p>
-        </article>
-        <article class="panel step">
-          <span class="step-index">04</span>
-          <h3>Upgrade with UPI</h3>
-          <p>Choose Starter/Pro, pay, submit UTR, and continue instantly.</p>
-        </article>
+        <article class="panel step"><span class="step-index">1</span><h3>Sign up</h3><p>Create login credentials.</p></article>
+        <article class="panel step"><span class="step-index">2</span><h3>Paste URL</h3><p>Use any public Instagram post/reel URL.</p></article>
+        <article class="panel step"><span class="step-index">3</span><h3>Fetch comments</h3><p>System extracts comments and prepares CSV.</p></article>
+        <article class="panel step"><span class="step-index">4</span><h3>Download CSV</h3><p>Click once to download to your device.</p></article>
       </div>
     </section>
 
@@ -89,17 +74,16 @@
       </div>
     </section>
 
-    <section id="dashboard" class="section shell">
+    <section id="fetch" class="section shell">
       <div class="section-header">
-        <h2>Dashboard</h2>
+        <h2>Fetch comments</h2>
         <span id="connectionBadge" class="badge">API: checking...</span>
       </div>
-
       <div id="globalMessage" class="message hidden"></div>
 
       <div class="cards two-col">
         <article class="panel">
-          <h3>Account and usage</h3>
+          <h3>Account and limits</h3>
           <p id="sessionText">Not logged in</p>
           <p id="usageText">Usage unavailable</p>
           <div class="usage-bar"><div id="usageFill" class="usage-fill"></div></div>
@@ -109,17 +93,18 @@
         </article>
 
         <article class="panel">
-          <h3>API key</h3>
-          <p id="apiKeyText">API key: sign up to generate</p>
+          <h3>Instagram post URL</h3>
+          <label for="postUrlInput">Paste post or reel URL</label>
+          <input id="postUrlInput" type="text" placeholder="https://www.instagram.com/p/...." />
           <div class="button-row">
-            <button id="copyApiKey" class="btn btn-ghost" type="button">Copy API Key</button>
-            <button id="rotateApiKey" class="btn btn-ghost" type="button">Rotate API Key</button>
+            <button id="fetchBtn" class="btn btn-primary" type="button">Fetch Comments and Download CSV</button>
           </div>
+          <p class="small muted">Free users can fetch only 1 post in total.</p>
         </article>
       </div>
 
       <article class="panel">
-        <h3>Plans (INR)</h3>
+        <h3>Upgrade plans (UPI)</h3>
         <div id="plansGrid" class="cards"></div>
       </article>
 
@@ -134,15 +119,15 @@
 
         <article class="panel">
           <h3>Confirm payment</h3>
-          <label for="utrInput">Enter UTR / UPI Transaction ID</label>
+          <label for="utrInput">Enter UTR / UPI transaction ID</label>
           <input id="utrInput" type="text" placeholder="Example: 416902123456" />
           <button id="confirmUtrBtn" class="btn btn-primary" type="button">Confirm and Activate Plan</button>
-          <p class="small muted">Use this after completing UPI payment from your app.</p>
+          <p class="small muted">After payment in UPI app, submit UTR here.</p>
         </article>
       </div>
 
       <article class="panel">
-        <h3>Recent jobs</h3>
+        <h3>Fetch history</h3>
         <ul id="jobs" class="job-list"></ul>
       </article>
     </section>

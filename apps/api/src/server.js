@@ -1,18 +1,16 @@
 const http = require('http');
 const crypto = require('crypto');
+
 const { withDb, readDb } = require('./services/store');
 const { hashPassword, verifyPassword, createToken } = require('./services/auth');
 const { sendJson, parseJsonBody } = require('./services/http');
 const { requireAuth } = require('./middleware/auth');
-const { canConsumeUsage, consumeUsage, getMonthKey } = require('./services/usage');
+const { canConsumeUsage, consumeUsage, getMonthKey, hasConsumedFreePost } = require('./services/usage');
 const { createUpiPaymentRequest, confirmUpiPayment, getActiveSubscription, getPublicPlans } = require('./services/upi');
+const { scrapeCommentsFromInstagramUrl } = require('./services/scrape');
 
 const port = Number(process.env.PORT || 8080);
 const jwtSecret = process.env.JWT_SECRET || 'dev-secret';
-
-function getUserSubscription(db, userId) {
-  return getActiveSubscription(db, userId);
-}
 
 function hashApiKey(apiKey) {
   return crypto.createHash('sha256').update(apiKey).digest('hex');
@@ -20,6 +18,10 @@ function hashApiKey(apiKey) {
 
 function generateApiKey() {
   return `igs_${crypto.randomBytes(24).toString('hex')}`;
+}
+
+function getUserSubscription(db, userId) {
+  return getActiveSubscription(db, userId);
 }
 
 function notFound(res) {
@@ -36,7 +38,7 @@ const server = http.createServer(async (req, res) => {
 
   try {
     if (req.method === 'GET' && url.pathname === '/health') {
-      sendJson(res, 200, { ok: true, service: 'ig-scraper-api', date: new Date().toISOString() });
+      sendJson(res, 200, { ok: true, service: 'commentmint-api', date: new Date().toISOString() });
       return;
     }
 
@@ -65,15 +67,15 @@ const server = http.createServer(async (req, res) => {
 
         const userId = crypto.randomUUID();
         const apiKey = generateApiKey();
-        const user = {
+
+        db.users.push({
           id: userId,
           email,
           passwordHash: hashPassword(password),
           apiKeyHash: hashApiKey(apiKey),
           createdAt: new Date().toISOString()
-        };
+        });
 
-        db.users.push(user);
         db.subscriptions.push({
           userId,
           plan: 'free',
@@ -83,7 +85,6 @@ const server = http.createServer(async (req, res) => {
         });
 
         const token = createToken({ userId, email }, jwtSecret);
-
         output = {
           status: 201,
           body: {
@@ -112,6 +113,7 @@ const server = http.createServer(async (req, res) => {
 
       const sub = getUserSubscription(db, user.id);
       const token = createToken({ userId: user.id, email: user.email }, jwtSecret);
+
       sendJson(res, 200, {
         token,
         user: { id: user.id, email: user.email, plan: sub.plan, expiresAt: sub.expiresAt }
@@ -130,6 +132,7 @@ const server = http.createServer(async (req, res) => {
           result = { status: 404, body: { error: 'user_not_found' } };
           return;
         }
+
         const apiKey = generateApiKey();
         user.apiKeyHash = hashApiKey(apiKey);
         result = { status: 200, body: { apiKey } };
@@ -153,10 +156,12 @@ const server = http.createServer(async (req, res) => {
       const sub = getUserSubscription(db, user.id);
       const monthKey = getMonthKey();
       const usage = db.usage.find((u) => u.userId === user.id && u.monthKey === monthKey) || { jobsUsed: 0, rowsUsed: 0, monthKey };
+      const freeUsed = hasConsumedFreePost(db, user.id);
 
       sendJson(res, 200, {
         user: { id: user.id, email: user.email, plan: sub.plan, expiresAt: sub.expiresAt },
-        usage
+        usage,
+        freeUsed
       });
       return;
     }
@@ -164,6 +169,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/billing/upi/create') {
       const auth = requireAuth(req, res, sendJson);
       if (!auth) return;
+
       const body = await parseJsonBody(req);
       const plan = body.plan || 'starter';
 
@@ -184,6 +190,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/billing/upi/confirm') {
       const auth = requireAuth(req, res, sendJson);
       if (!auth) return;
+
       const body = await parseJsonBody(req);
       const paymentId = String(body.paymentId || '');
       const utr = String(body.utr || '');
@@ -195,6 +202,7 @@ const server = http.createServer(async (req, res) => {
           output = { status: 400, body: { error: result.error } };
           return;
         }
+
         output = {
           status: 200,
           body: {
@@ -211,43 +219,46 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === 'GET' && url.pathname === '/billing/upi/history') {
+    if (req.method === 'POST' && url.pathname === '/comments/fetch') {
       const auth = requireAuth(req, res, sendJson);
       if (!auth) return;
 
-      const db = readDb();
-      const payments = db.payments
-        .filter((p) => p.userId === auth.userId)
-        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      const body = await parseJsonBody(req);
+      const postUrl = String(body.postUrl || '').trim();
 
-      sendJson(res, 200, { payments });
-      return;
-    }
-
-    if (req.method === 'POST' && url.pathname === '/scrape-jobs') {
-      const apiKeyHeader = req.headers['x-api-key'];
-      if (!apiKeyHeader) {
-        sendJson(res, 401, { error: 'missing_api_key' });
+      if (!postUrl) {
+        sendJson(res, 400, { error: 'post_url_required' });
         return;
       }
 
-      const body = await parseJsonBody(req);
-      const rows = Array.isArray(body.rows) ? body.rows : [];
-      const metadata = body.metadata || {};
+      const scrape = await scrapeCommentsFromInstagramUrl(postUrl);
+      if (scrape.error) {
+        sendJson(res, 400, { error: scrape.error });
+        return;
+      }
 
       let output;
       withDb((db) => {
-        const apiHash = hashApiKey(String(apiKeyHeader));
-        const user = db.users.find((u) => u.apiKeyHash === apiHash);
-
+        const user = db.users.find((u) => u.id === auth.userId);
         if (!user) {
-          output = { status: 401, body: { error: 'invalid_api_key' } };
+          output = { status: 404, body: { error: 'user_not_found' } };
           return;
         }
 
         const sub = getUserSubscription(db, user.id);
-        const plan = sub.plan;
-        const check = canConsumeUsage(db, user.id, plan, rows.length);
+
+        if (sub.plan === 'free' && hasConsumedFreePost(db, user.id)) {
+          output = {
+            status: 402,
+            body: {
+              error: 'free_limit_reached',
+              message: 'Free plan includes only 1 post fetch. Upgrade to continue.'
+            }
+          };
+          return;
+        }
+
+        const check = canConsumeUsage(db, user.id, sub.plan, scrape.rows.length);
         if (!check.allowed) {
           output = {
             status: 402,
@@ -258,7 +269,7 @@ const server = http.createServer(async (req, res) => {
                 exceededRowsPerJob: check.exceededRowsPerJob,
                 limits: check.limits,
                 usage: check.usage,
-                plan,
+                plan: sub.plan,
                 expiresAt: sub.expiresAt
               }
             }
@@ -269,22 +280,27 @@ const server = http.createServer(async (req, res) => {
         const job = {
           id: crypto.randomUUID(),
           userId: user.id,
-          rowsCount: rows.length,
-          metadata,
+          rowsCount: scrape.rows.length,
+          sourceType: 'direct_url',
+          metadata: { postUrl, shortcode: scrape.shortcode },
           createdAt: new Date().toISOString(),
-          sample: rows.slice(0, 5)
+          sample: scrape.rows.slice(0, 5)
         };
+
         db.jobs.push(job);
-        const usage = consumeUsage(db, user.id, rows.length);
+        const usage = consumeUsage(db, user.id, scrape.rows.length);
 
         output = {
-          status: 201,
+          status: 200,
           body: {
+            ok: true,
             jobId: job.id,
-            rowsStored: rows.length,
-            usage,
-            plan,
-            expiresAt: sub.expiresAt
+            plan: sub.plan,
+            expiresAt: sub.expiresAt,
+            rowsCount: scrape.rows.length,
+            csv: scrape.csv,
+            filename: scrape.filename,
+            usage
           }
         };
       });

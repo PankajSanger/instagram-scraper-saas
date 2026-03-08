@@ -20,6 +20,13 @@
       "passwordHash": "51702101662006a4752c19911ead028b:aea1f0093d93daaca6ad2899482268cc45b58ce6c27f0a60e02cb7838d6dfef63c3ca6f6f82ae1bf32d105e6fda1aca3ab4b94f1001a9d9668e3a0045e78aa95",
       "apiKeyHash": "87a072a367f5e286a56965e83960298aa5f191455d1ba5b7aa643a7317dac21f",
       "createdAt": "2026-03-08T08:32:04.053Z"
+    },
+    {
+      "id": "b98a0602-2edb-46c4-9020-74f30b9856ed",
+      "email": "flowtest@example.com",
+      "passwordHash": "8d497bab040f7aef948315c744b29723:4101063604b611e54c1a80e418e9fc502fb6819161d95033a972eee5f3e8d7d92f231847a11734e457d5acc17480b541e9d607c97658476980df002990dce6d2",
+      "apiKeyHash": "f5103ffea6f28143923a43626fb990cae5b1c72a1703a34e085f4222f28a5dd1",
+      "createdAt": "2026-03-08T10:10:22.052Z"
     }
   ],
   "jobs": [],
@@ -43,6 +50,13 @@
       "status": "active",
       "expiresAt": "2026-04-07T08:32:04.077Z",
       "updatedAt": "2026-03-08T08:32:04.077Z"
+    },
+    {
+      "userId": "b98a0602-2edb-46c4-9020-74f30b9856ed",
+      "plan": "free",
+      "status": "active",
+      "expiresAt": null,
+      "updatedAt": "2026-03-08T10:10:22.054Z"
     }
   ],
   "usage": [],

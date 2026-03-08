@@ -1,5 +1,5 @@
 const API_BASE = localStorage.getItem('cm_api_base') || (window.location.hostname === 'localhost' ? 'http://localhost:8080' : 'https://commentmint-api.onrender.com');
-const REQUEST_TIMEOUT_MS = 15000;
+const REQUEST_TIMEOUT_MS = 20000;
 
 const authSection = document.getElementById('auth');
 const showAuthBtn = document.getElementById('showAuth');
@@ -15,11 +15,10 @@ const loginBtn = document.getElementById('loginBtn');
 const sessionText = document.getElementById('sessionText');
 const usageText = document.getElementById('usageText');
 const usageFill = document.getElementById('usageFill');
-const apiKeyText = document.getElementById('apiKeyText');
-
-const copyApiKeyBtn = document.getElementById('copyApiKey');
-const rotateApiKeyBtn = document.getElementById('rotateApiKey');
 const logoutBtn = document.getElementById('logoutBtn');
+
+const postUrlInput = document.getElementById('postUrlInput');
+const fetchBtn = document.getElementById('fetchBtn');
 
 const plansGrid = document.getElementById('plansGrid');
 const paymentText = document.getElementById('paymentText');
@@ -33,25 +32,16 @@ const jobsList = document.getElementById('jobs');
 
 const state = {
   token: localStorage.getItem('cm_token') || '',
-  apiKey: localStorage.getItem('cm_api_key') || '',
   plans: [],
   paymentRequest: null,
-  user: null
+  user: null,
+  freeUsed: false
 };
 
-function setSession(token, apiKey) {
+function setSession(token) {
   state.token = token || '';
-  if (token) {
-    localStorage.setItem('cm_token', token);
-  } else {
-    localStorage.removeItem('cm_token');
-  }
-
-  if (typeof apiKey === 'string') {
-    state.apiKey = apiKey;
-    if (apiKey) localStorage.setItem('cm_api_key', apiKey);
-    else localStorage.removeItem('cm_api_key');
-  }
+  if (token) localStorage.setItem('cm_token', token);
+  else localStorage.removeItem('cm_token');
 }
 
 function authHeaders() {
@@ -86,33 +76,30 @@ function setButtonLoading(button, isLoading, loadingText, defaultText) {
   }
 }
 
+function downloadCsv(csvText, filename) {
+  const blob = new Blob([`\uFEFF${csvText}`], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename || `comments_${Date.now()}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+}
+
 async function fetchJson(path, options = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${API_BASE}${path}`, {
-      ...options,
-      signal: controller.signal
-    });
-
+    const response = await fetch(`${API_BASE}${path}`, { ...options, signal: controller.signal });
     let data = {};
-    try {
-      data = await response.json();
-    } catch (e) {
-      data = {};
-    }
-
-    if (!response.ok) {
-      const message = data.message || data.error || `Request failed (${response.status})`;
-      throw new Error(message);
-    }
-
+    try { data = await response.json(); } catch { data = {}; }
+    if (!response.ok) throw new Error(data.message || data.error || `Request failed (${response.status})`);
     return data;
   } catch (error) {
-    if (error.name === 'AbortError') {
-      throw new Error('Request timed out. Please try again.');
-    }
+    if (error.name === 'AbortError') throw new Error('Request timed out. Please try again.');
     throw error;
   } finally {
     clearTimeout(timeout);
@@ -137,11 +124,11 @@ function resetPaymentUi() {
 
 function setLoggedOutView() {
   state.user = null;
+  state.freeUsed = false;
   sessionText.textContent = 'Not logged in';
   usageText.textContent = 'Usage unavailable';
   usageFill.style.width = '0%';
-  apiKeyText.textContent = 'API key: sign up to generate';
-  jobsList.innerHTML = '<li>Log in to view jobs</li>';
+  jobsList.innerHTML = '<li>Log in to view fetch history</li>';
   resetPaymentUi();
 }
 
@@ -150,7 +137,6 @@ function renderUsage(usage, planConfig) {
     usageFill.style.width = '0%';
     return;
   }
-
   const monthlyLimit = Number(planConfig.monthlyJobs || 0);
   const used = Number(usage.jobsUsed || 0);
   const percent = monthlyLimit > 0 ? Math.min(100, Math.round((used / monthlyLimit) * 100)) : 0;
@@ -170,9 +156,10 @@ function renderPlans() {
 
     const isCurrent = state.user && state.user.plan === plan.id;
     const isFree = plan.id === 'free';
+    const freeText = plan.oneTimeFreePost ? ' (1 post total)' : '';
 
     article.innerHTML = `
-      <h3>${plan.label}</h3>
+      <h3>${plan.label}${freeText}</h3>
       <p><strong>Rs ${plan.priceInr}</strong>${plan.durationDays ? ` / ${plan.durationDays} days` : ''}</p>
       <p class="small muted">${plan.monthlyJobs} jobs/month, ${plan.maxRowsPerJob} rows/job</p>
       <button class="btn ${isCurrent || isFree ? 'btn-ghost' : 'btn-primary'}" data-upgrade-plan="${plan.id}" ${isCurrent || isFree ? 'disabled' : ''}>
@@ -187,13 +174,12 @@ function renderPlans() {
 function renderJobs(jobs) {
   jobsList.innerHTML = '';
   if (!jobs || !jobs.length) {
-    jobsList.innerHTML = '<li>No jobs yet</li>';
+    jobsList.innerHTML = '<li>No fetches yet</li>';
     return;
   }
-
   jobs.slice(0, 10).forEach((job) => {
     const li = document.createElement('li');
-    li.textContent = `${formatDate(job.createdAt)} - ${job.rowsCount} rows`;
+    li.textContent = `${formatDate(job.createdAt)} - ${job.rowsCount} comments - ${job.metadata?.postUrl || ''}`;
     jobsList.appendChild(li);
   });
 }
@@ -206,9 +192,7 @@ function attachPlanActions() {
         showMessage(globalMessage, 'Please log in first to upgrade your plan.', 'error');
         return;
       }
-
-      const plan = button.dataset.upgradePlan;
-      await createPaymentRequest(plan, button);
+      await createPaymentRequest(button.dataset.upgradePlan, button);
     });
   });
 }
@@ -220,7 +204,7 @@ async function loadPlans() {
     renderPlans();
     attachPlanActions();
     renderConnectionBadge(true, 'API: connected');
-  } catch (error) {
+  } catch {
     renderConnectionBadge(false, 'API: unavailable');
     state.plans = [];
     renderPlans();
@@ -238,22 +222,22 @@ async function refreshDashboard() {
   try {
     const me = await fetchJson('/me', { headers: { ...authHeaders() } });
     state.user = me.user;
+    state.freeUsed = Boolean(me.freeUsed);
 
     const expiry = me.user.expiresAt ? `, expires ${new Date(me.user.expiresAt).toLocaleDateString('en-IN')}` : '';
-    sessionText.textContent = `Logged in as ${me.user.email} (${me.user.plan}${expiry})`;
+    const freeInfo = me.user.plan === 'free' ? `, free post used: ${state.freeUsed ? 'yes' : 'no'}` : '';
+
+    sessionText.textContent = `Logged in as ${me.user.email} (${me.user.plan}${expiry}${freeInfo})`;
     usageText.textContent = `Usage ${me.usage.monthKey}: jobs ${me.usage.jobsUsed}, rows ${me.usage.rowsUsed}`;
 
     const planConfig = state.plans.find((p) => p.id === me.user.plan);
     renderUsage(me.usage, planConfig);
-
-    apiKeyText.textContent = state.apiKey ? `API key: ${state.apiKey}` : 'API key hidden. Rotate to generate.';
 
     const jobs = await fetchJson('/jobs', { headers: { ...authHeaders() } });
     renderJobs(jobs.jobs);
 
     renderPlans();
     attachPlanActions();
-
     hideMessage(globalMessage);
   } catch (error) {
     showMessage(globalMessage, `Unable to load dashboard: ${error.message}`, 'error');
@@ -262,14 +246,10 @@ async function refreshDashboard() {
 
 async function createPaymentRequest(plan, button) {
   setButtonLoading(button, true, 'Creating request...', button.textContent);
-
   try {
     const request = await fetchJson('/billing/upi/create', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeaders()
-      },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ plan })
     });
 
@@ -281,7 +261,7 @@ async function createPaymentRequest(plan, button) {
     upiQr.classList.remove('hidden');
     pendingPayment.textContent = `Pending payment: ${request.paymentId} (expires ${formatDate(request.expiresAt)})`;
 
-    showMessage(globalMessage, 'Payment request created. Complete payment in UPI app, then submit UTR below.', 'ok');
+    showMessage(globalMessage, 'Payment request created. Pay in UPI app, then submit UTR below.', 'ok');
   } catch (error) {
     showMessage(globalMessage, `Could not create payment request: ${error.message}`, 'error');
   } finally {
@@ -294,9 +274,8 @@ async function confirmPayment() {
     showMessage(globalMessage, 'Please log in to confirm payment.', 'error');
     return;
   }
-
   if (!state.paymentRequest || !state.paymentRequest.paymentId) {
-    showMessage(globalMessage, 'Please create a payment request first.', 'error');
+    showMessage(globalMessage, 'Create a payment request first from plan cards.', 'error');
     return;
   }
 
@@ -307,18 +286,11 @@ async function confirmPayment() {
   }
 
   setButtonLoading(confirmUtrBtn, true, 'Confirming...', 'Confirm and Activate Plan');
-
   try {
     const confirmed = await fetchJson('/billing/upi/confirm', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeaders()
-      },
-      body: JSON.stringify({
-        paymentId: state.paymentRequest.paymentId,
-        utr
-      })
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ paymentId: state.paymentRequest.paymentId, utr })
     });
 
     utrInput.value = '';
@@ -332,49 +304,39 @@ async function confirmPayment() {
   }
 }
 
-async function rotateApiKey() {
+async function fetchCommentsAndDownload() {
   if (!state.token) {
-    showMessage(globalMessage, 'Please log in to rotate API key.', 'error');
+    showMessage(globalMessage, 'Please log in first.', 'error');
     return;
   }
 
-  setButtonLoading(rotateApiKeyBtn, true, 'Rotating...', 'Rotate API Key');
+  const postUrl = (postUrlInput.value || '').trim();
+  if (!postUrl) {
+    showMessage(globalMessage, 'Please paste an Instagram post URL.', 'error');
+    return;
+  }
+
+  setButtonLoading(fetchBtn, true, 'Fetching comments...', 'Fetch Comments and Download CSV');
 
   try {
-    const data = await fetchJson('/auth/api-key/rotate', {
+    const result = await fetchJson('/comments/fetch', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeaders()
-      }
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ postUrl })
     });
 
-    setSession(state.token, data.apiKey);
-    apiKeyText.textContent = `API key: ${data.apiKey}`;
-    showMessage(globalMessage, 'API key rotated successfully.', 'ok');
+    downloadCsv(result.csv, result.filename);
+    showMessage(globalMessage, `Fetched ${result.rowsCount} comments. CSV download started.`, 'ok');
+    await refreshDashboard();
   } catch (error) {
-    showMessage(globalMessage, `Could not rotate API key: ${error.message}`, 'error');
+    showMessage(globalMessage, `Fetch failed: ${error.message}`, 'error');
   } finally {
-    setButtonLoading(rotateApiKeyBtn, false, '', 'Rotate API Key');
-  }
-}
-
-async function copyApiKey() {
-  if (!state.apiKey) {
-    showMessage(globalMessage, 'No API key found. Rotate to generate one.', 'error');
-    return;
-  }
-
-  try {
-    await navigator.clipboard.writeText(state.apiKey);
-    showMessage(globalMessage, 'API key copied to clipboard.', 'ok');
-  } catch (error) {
-    showMessage(globalMessage, 'Clipboard copy failed. Please copy manually.', 'error');
+    setButtonLoading(fetchBtn, false, '', 'Fetch Comments and Download CSV');
   }
 }
 
 function logout() {
-  setSession('', '');
+  setSession('');
   setLoggedOutView();
   renderPlans();
   attachPlanActions();
@@ -391,14 +353,12 @@ signupForm.addEventListener('submit', async (event) => {
   const form = new FormData(signupForm);
   const email = String(form.get('email') || '').trim();
   const password = String(form.get('password') || '');
-
   if (!email || password.length < 8) {
     showMessage(authMessage, 'Please provide valid email and password (min 8 chars).', 'error');
     return;
   }
 
   setButtonLoading(signupBtn, true, 'Creating account...', 'Sign up');
-
   try {
     const data = await fetchJson('/auth/signup', {
       method: 'POST',
@@ -406,9 +366,8 @@ signupForm.addEventListener('submit', async (event) => {
       body: JSON.stringify({ email, password })
     });
 
-    setSession(data.token, data.apiKey);
+    setSession(data.token);
     showMessage(authMessage, 'Account created successfully. You are now logged in.', 'ok');
-    hideMessage(globalMessage);
     await refreshDashboard();
   } catch (error) {
     showMessage(authMessage, `Signup failed: ${error.message}`, 'error');
@@ -422,14 +381,12 @@ loginForm.addEventListener('submit', async (event) => {
   const form = new FormData(loginForm);
   const email = String(form.get('email') || '').trim();
   const password = String(form.get('password') || '');
-
   if (!email || !password) {
     showMessage(authMessage, 'Please provide both email and password.', 'error');
     return;
   }
 
   setButtonLoading(loginBtn, true, 'Logging in...', 'Log in');
-
   try {
     const data = await fetchJson('/auth/login', {
       method: 'POST',
@@ -447,9 +404,8 @@ loginForm.addEventListener('submit', async (event) => {
   }
 });
 
-copyApiKeyBtn.addEventListener('click', copyApiKey);
-rotateApiKeyBtn.addEventListener('click', rotateApiKey);
 logoutBtn.addEventListener('click', logout);
+fetchBtn.addEventListener('click', fetchCommentsAndDownload);
 confirmUtrBtn.addEventListener('click', confirmPayment);
 
 (async function init() {

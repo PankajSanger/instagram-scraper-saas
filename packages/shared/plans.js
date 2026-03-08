@@ -3,10 +3,11 @@ const PLAN_LIMITS = {
     label: 'Free',
     priceInr: 0,
     durationDays: 0,
-    monthlyJobs: 10,
-    maxRowsPerJob: 500,
+    monthlyJobs: 1,
+    maxRowsPerJob: 300,
     profileEnrichment: false,
-    threadedReplies: false
+    threadedReplies: false,
+    oneTimeFreePost: true
   },
   starter: {
     label: 'Starter',
@@ -15,7 +16,8 @@ const PLAN_LIMITS = {
     monthlyJobs: 120,
     maxRowsPerJob: 10000,
     profileEnrichment: true,
-    threadedReplies: true
+    threadedReplies: true,
+    oneTimeFreePost: false
   },
   pro: {
     label: 'Pro',
@@ -24,7 +26,8 @@ const PLAN_LIMITS = {
     monthlyJobs: 600,
     maxRowsPerJob: 100000,
     profileEnrichment: true,
-    threadedReplies: true
+    threadedReplies: true,
+    oneTimeFreePost: false
   }
 };
 
@@ -41,7 +44,8 @@ function getPublicPlans() {
     priceInr: config.priceInr,
     durationDays: config.durationDays,
     monthlyJobs: config.monthlyJobs,
-    maxRowsPerJob: config.maxRowsPerJob
+    maxRowsPerJob: config.maxRowsPerJob,
+    oneTimeFreePost: Boolean(config.oneTimeFreePost)
   }));
 }
 
