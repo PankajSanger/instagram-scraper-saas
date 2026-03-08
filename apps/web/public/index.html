@@ -3,142 +3,122 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CommentMint - Fetch Instagram Comments to CSV</title>
+  <title>CommentMint - Instagram Comments to CSV</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="hero">
-    <nav class="nav shell">
-      <div class="brand">CommentMint</div>
-      <div class="nav-actions">
-        <a class="link" href="#how">How it works</a>
-        <a class="link" href="#fetch">Fetch comments</a>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <div class="brand-wrap">
+        <div class="brand">CommentMint</div>
+        <div class="tagline">Paste Instagram URL, fetch comments, download CSV</div>
       </div>
-    </nav>
 
-    <div class="shell hero-grid">
-      <div>
-        <p class="eyebrow">No extension required</p>
-        <h1>Paste Instagram post URL. Download comments in CSV.</h1>
-        <p class="hero-copy">Create an account, paste a post URL, fetch comments, and download instantly. Free users get 1 post fetch. Paid users unlock unlimited workflow based on plan.</p>
-        <div class="cta-row">
-          <button id="showAuth" class="btn btn-primary">Create Free Account</button>
-          <a class="btn btn-ghost" href="#fetch">Start Fetching</a>
-        </div>
-      </div>
-      <aside class="hero-card">
-        <h3>Customer journey</h3>
-        <ol>
-          <li>Create account</li>
-          <li>Paste Instagram post URL</li>
-          <li>Click fetch and download CSV</li>
-          <li>Free plan works for 1 post only</li>
-          <li>Upgrade via UPI to continue</li>
-        </ol>
-      </aside>
+      <nav class="nav" aria-label="Main Navigation">
+        <button class="nav-link is-active" data-view-target="home">Home</button>
+        <button class="nav-link" data-view-target="dashboard">Dashboard</button>
+        <button class="nav-link" data-view-target="billing">Billing</button>
+      </nav>
+
+      <div class="auth-actions" id="authActions"></div>
     </div>
   </header>
 
-  <main>
-    <section id="how" class="section shell">
-      <h2>How it works</h2>
-      <div class="steps">
-        <article class="panel step"><span class="step-index">1</span><h3>Sign up</h3><p>Create login credentials.</p></article>
-        <article class="panel step"><span class="step-index">2</span><h3>Paste URL</h3><p>Use any public Instagram post/reel URL.</p></article>
-        <article class="panel step"><span class="step-index">3</span><h3>Fetch comments</h3><p>System extracts comments and prepares CSV.</p></article>
-        <article class="panel step"><span class="step-index">4</span><h3>Download CSV</h3><p>Click once to download to your device.</p></article>
+  <main class="shell main">
+    <div id="appMessage" class="app-message hidden"></div>
+
+    <section id="view-home" class="view is-active">
+      <div class="hero card">
+        <h1>Simple Instagram comment scraper for teams and creators</h1>
+        <p>No extension setup needed for customers. Create an account, paste a public Instagram post URL, and download comments as CSV.</p>
+      </div>
+
+      <div class="grid-3">
+        <article class="card">
+          <h3>1. Create account</h3>
+          <p>Use email and password to sign up.</p>
+        </article>
+        <article class="card">
+          <h3>2. Fetch comments</h3>
+          <p>Go to Dashboard, paste a public post URL, click fetch.</p>
+        </article>
+        <article class="card">
+          <h3>3. Upgrade when needed</h3>
+          <p>Free plan supports 1 post. Use Billing page for UPI upgrade.</p>
+        </article>
+      </div>
+
+      <div class="card auth-card">
+        <div class="auth-grid">
+          <form id="signupForm">
+            <h3>Create account</h3>
+            <label>Email</label>
+            <input name="email" type="email" placeholder="you@company.com" required />
+            <label>Password</label>
+            <input name="password" type="password" minlength="8" placeholder="Minimum 8 characters" required />
+            <button id="signupBtn" type="submit" class="btn btn-primary">Sign up</button>
+          </form>
+
+          <form id="loginForm">
+            <h3>Sign in</h3>
+            <label>Email</label>
+            <input name="email" type="email" placeholder="you@company.com" required />
+            <label>Password</label>
+            <input name="password" type="password" placeholder="Your password" required />
+            <button id="loginBtn" type="submit" class="btn btn-secondary">Log in</button>
+          </form>
+        </div>
       </div>
     </section>
 
-    <section id="auth" class="section shell hidden">
-      <h2>Account access</h2>
-      <p id="authMessage" class="message">Create a new account or sign in to continue.</p>
-      <div class="auth-grid">
-        <form id="signupForm" class="panel">
-          <h3>Create account</h3>
-          <label>Email</label>
-          <input name="email" type="email" placeholder="you@company.com" required />
-          <label>Password</label>
-          <input name="password" type="password" placeholder="Minimum 8 characters" minlength="8" required />
-          <button id="signupBtn" class="btn btn-primary" type="submit">Sign up</button>
-        </form>
-
-        <form id="loginForm" class="panel">
-          <h3>Sign in</h3>
-          <label>Email</label>
-          <input name="email" type="email" placeholder="you@company.com" required />
-          <label>Password</label>
-          <input name="password" type="password" placeholder="Your password" required />
-          <button id="loginBtn" class="btn btn-ghost" type="submit">Log in</button>
-        </form>
-      </div>
-    </section>
-
-    <section id="fetch" class="section shell">
-      <div class="section-header">
-        <h2>Fetch comments</h2>
-        <span id="connectionBadge" class="badge">API: checking...</span>
-      </div>
-      <div id="globalMessage" class="message hidden"></div>
-
-      <div class="cards two-col">
-        <article class="panel">
-          <h3>Account and limits</h3>
+    <section id="view-dashboard" class="view">
+      <div class="grid-2">
+        <article class="card">
+          <h3>Account</h3>
           <p id="sessionText">Not logged in</p>
           <p id="usageText">Usage unavailable</p>
-          <div class="usage-bar"><div id="usageFill" class="usage-fill"></div></div>
-          <div class="button-row">
-            <button id="logoutBtn" class="btn btn-ghost" type="button">Log out</button>
-          </div>
+          <div class="meter"><div id="usageBar"></div></div>
         </article>
 
-        <article class="panel">
-          <h3>Instagram post URL</h3>
-          <label for="postUrlInput">Paste post or reel URL</label>
-          <input id="postUrlInput" type="text" placeholder="https://www.instagram.com/p/...." />
-          <div class="button-row">
-            <button id="fetchBtn" class="btn btn-primary" type="button">Fetch Comments and Download CSV</button>
-          </div>
-          <p class="small muted">Free users can fetch only 1 post in total.</p>
+        <article class="card">
+          <h3>Fetch comments</h3>
+          <label for="postUrlInput">Instagram post/reel URL</label>
+          <input id="postUrlInput" type="text" placeholder="https://www.instagram.com/p/..." />
+          <button id="fetchBtn" class="btn btn-primary" type="button">Fetch and Download CSV</button>
+          <p class="muted">Free plan: 1 post total. Paid plan required after that.</p>
         </article>
       </div>
 
-      <article class="panel">
-        <h3>Upgrade plans (UPI)</h3>
-        <div id="plansGrid" class="cards"></div>
-      </article>
-
-      <div class="cards two-col">
-        <article class="panel">
-          <h3>UPI payment request</h3>
-          <p id="paymentText">Select a paid plan to create a payment request.</p>
-          <a id="upiLink" class="btn btn-primary hidden" href="#" target="_blank" rel="noopener">Open UPI App</a>
-          <img id="upiQr" class="hidden qr" alt="UPI QR" />
-          <p id="pendingPayment" class="small muted"></p>
-        </article>
-
-        <article class="panel">
-          <h3>Confirm payment</h3>
-          <label for="utrInput">Enter UTR / UPI transaction ID</label>
-          <input id="utrInput" type="text" placeholder="Example: 416902123456" />
-          <button id="confirmUtrBtn" class="btn btn-primary" type="button">Confirm and Activate Plan</button>
-          <p class="small muted">After payment in UPI app, submit UTR here.</p>
-        </article>
-      </div>
-
-      <article class="panel">
-        <h3>Fetch history</h3>
-        <ul id="jobs" class="job-list"></ul>
+      <article class="card">
+        <h3>Recent fetches</h3>
+        <ul id="jobsList" class="list"></ul>
       </article>
     </section>
-  </main>
 
-  <footer class="footer">
-    <div class="shell footer-grid">
-      <div>CommentMint India</div>
-      <div>Support: support@yourdomain.com</div>
-    </div>
-  </footer>
+    <section id="view-billing" class="view">
+      <article class="card">
+        <h3>Plans (INR)</h3>
+        <div id="plansGrid" class="grid-3"></div>
+      </article>
+
+      <div class="grid-2">
+        <article class="card">
+          <h3>Create UPI payment request</h3>
+          <p id="paymentText">Select a paid plan to generate a UPI request.</p>
+          <a id="upiLink" class="btn btn-primary hidden" target="_blank" rel="noopener">Open UPI App</a>
+          <img id="upiQr" class="qr hidden" alt="UPI QR" />
+          <p id="pendingPayment" class="muted"></p>
+        </article>
+
+        <article class="card">
+          <h3>Confirm payment</h3>
+          <label for="utrInput">UTR / Transaction ID</label>
+          <input id="utrInput" type="text" placeholder="Example: 416902123456" />
+          <button id="confirmPaymentBtn" class="btn btn-primary" type="button">Confirm and Activate</button>
+        </article>
+      </div>
+    </section>
+  </main>
 
   <script src="app.js"></script>
 </body>
