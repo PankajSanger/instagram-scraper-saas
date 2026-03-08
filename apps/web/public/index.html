@@ -3,93 +3,157 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CommentMint - India-first Instagram Comment Scraper SaaS</title>
+  <title>CommentMint - Instagram Comment Export SaaS</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="hero">
-    <nav class="nav">
+    <nav class="nav shell">
       <div class="brand">CommentMint</div>
-      <a class="link" href="#pricing">Pricing</a>
-    </nav>
-    <div class="hero-content">
-      <h1>Instagram comments export tool for Indian creators and agencies.</h1>
-      <p>Scrape comments quickly, download CSV, and manage usage with simple UPI-based paid plans.</p>
-      <div class="cta-row">
-        <button id="showAuth" class="btn btn-primary">Start Free</button>
-        <a class="btn btn-ghost" href="#dashboard">Go to Dashboard</a>
+      <div class="nav-actions">
+        <a class="link" href="#onboarding">How it works</a>
+        <a class="link" href="#dashboard">Dashboard</a>
       </div>
+    </nav>
+
+    <div class="shell hero-grid">
+      <div>
+        <p class="eyebrow">India-first UPI billing</p>
+        <h1>Turn Instagram comments into usable customer data.</h1>
+        <p class="hero-copy">Built for creators, agencies, and growth teams. Export comments, track usage, and upgrade plans in a smooth self-serve flow.</p>
+        <div class="cta-row">
+          <button id="showAuth" class="btn btn-primary">Create Free Account</button>
+          <a class="btn btn-ghost" href="#dashboard">View Dashboard</a>
+        </div>
+      </div>
+      <aside class="hero-card">
+        <h3>What users do</h3>
+        <ol>
+          <li>Create account and copy API key</li>
+          <li>Add API URL + key in extension</li>
+          <li>Scrape post comments and get CSV + cloud history</li>
+          <li>Upgrade plan via UPI when needed</li>
+        </ol>
+      </aside>
     </div>
-    <div class="grid-bg"></div>
   </header>
 
   <main>
-    <section id="pricing" class="section">
-      <h2>Pricing (INR)</h2>
-      <div class="cards">
-        <article class="card">
-          <h3>Free</h3>
-          <p class="price">Rs 0</p>
-          <p>10 jobs/month, 500 rows/job</p>
-          <button data-plan="free" class="btn btn-ghost plan-btn">Current Base Plan</button>
+    <section id="onboarding" class="section shell">
+      <h2>Onboarding flow</h2>
+      <div class="steps">
+        <article class="panel step">
+          <span class="step-index">01</span>
+          <h3>Sign up</h3>
+          <p>Create your account to get secure dashboard access.</p>
         </article>
-        <article class="card featured">
-          <h3>Starter</h3>
-          <p class="price">Rs 499 / 30 days</p>
-          <p>120 jobs/month, 10k rows/job</p>
-          <button data-plan="starter" class="btn btn-primary plan-btn">Pay with UPI</button>
+        <article class="panel step">
+          <span class="step-index">02</span>
+          <h3>Connect extension</h3>
+          <p>Paste API URL and API key in extension popup once.</p>
         </article>
-        <article class="card">
-          <h3>Pro</h3>
-          <p class="price">Rs 1499 / 30 days</p>
-          <p>600 jobs/month, 100k rows/job</p>
-          <button data-plan="pro" class="btn btn-primary plan-btn">Pay with UPI</button>
+        <article class="panel step">
+          <span class="step-index">03</span>
+          <h3>Run scraper</h3>
+          <p>Export CSV locally and push job metadata to dashboard.</p>
+        </article>
+        <article class="panel step">
+          <span class="step-index">04</span>
+          <h3>Upgrade with UPI</h3>
+          <p>Choose Starter/Pro, pay, submit UTR, and continue instantly.</p>
         </article>
       </div>
     </section>
 
-    <section id="auth" class="section auth hidden">
-      <h2>Account</h2>
+    <section id="auth" class="section shell hidden">
+      <h2>Account access</h2>
+      <p id="authMessage" class="message">Create a new account or sign in to continue.</p>
       <div class="auth-grid">
         <form id="signupForm" class="panel">
           <h3>Create account</h3>
-          <input name="email" type="email" placeholder="email" required />
-          <input name="password" type="password" placeholder="password (min 8 chars)" required />
-          <button class="btn btn-primary" type="submit">Sign up</button>
+          <label>Email</label>
+          <input name="email" type="email" placeholder="you@company.com" required />
+          <label>Password</label>
+          <input name="password" type="password" placeholder="Minimum 8 characters" minlength="8" required />
+          <button id="signupBtn" class="btn btn-primary" type="submit">Sign up</button>
         </form>
+
         <form id="loginForm" class="panel">
           <h3>Sign in</h3>
-          <input name="email" type="email" placeholder="email" required />
-          <input name="password" type="password" placeholder="password" required />
-          <button class="btn btn-ghost" type="submit">Log in</button>
+          <label>Email</label>
+          <input name="email" type="email" placeholder="you@company.com" required />
+          <label>Password</label>
+          <input name="password" type="password" placeholder="Your password" required />
+          <button id="loginBtn" class="btn btn-ghost" type="submit">Log in</button>
         </form>
       </div>
     </section>
 
-    <section id="dashboard" class="section">
-      <h2>Dashboard</h2>
-      <div class="panel">
-        <p id="sessionText">Not logged in</p>
-        <p id="usageText">Usage unavailable</p>
-        <p id="apiKeyText">API key: sign up to generate</p>
-        <button id="rotateApiKey" class="btn btn-ghost">Rotate API Key</button>
+    <section id="dashboard" class="section shell">
+      <div class="section-header">
+        <h2>Dashboard</h2>
+        <span id="connectionBadge" class="badge">API: checking...</span>
       </div>
 
-      <div class="panel">
-        <h3>UPI Payment</h3>
-        <p id="paymentText">Select a paid plan to create a UPI payment request.</p>
-        <a id="upiLink" class="btn btn-primary hidden" href="#" target="_blank" rel="noopener">Open UPI App</a>
-        <img id="upiQr" class="hidden" alt="UPI QR" style="max-width:220px;margin-top:10px;border-radius:10px;border:1px solid #ddd" />
+      <div id="globalMessage" class="message hidden"></div>
+
+      <div class="cards two-col">
+        <article class="panel">
+          <h3>Account and usage</h3>
+          <p id="sessionText">Not logged in</p>
+          <p id="usageText">Usage unavailable</p>
+          <div class="usage-bar"><div id="usageFill" class="usage-fill"></div></div>
+          <div class="button-row">
+            <button id="logoutBtn" class="btn btn-ghost" type="button">Log out</button>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h3>API key</h3>
+          <p id="apiKeyText">API key: sign up to generate</p>
+          <div class="button-row">
+            <button id="copyApiKey" class="btn btn-ghost" type="button">Copy API Key</button>
+            <button id="rotateApiKey" class="btn btn-ghost" type="button">Rotate API Key</button>
+          </div>
+        </article>
       </div>
 
-      <div class="panel">
+      <article class="panel">
+        <h3>Plans (INR)</h3>
+        <div id="plansGrid" class="cards"></div>
+      </article>
+
+      <div class="cards two-col">
+        <article class="panel">
+          <h3>UPI payment request</h3>
+          <p id="paymentText">Select a paid plan to create a payment request.</p>
+          <a id="upiLink" class="btn btn-primary hidden" href="#" target="_blank" rel="noopener">Open UPI App</a>
+          <img id="upiQr" class="hidden qr" alt="UPI QR" />
+          <p id="pendingPayment" class="small muted"></p>
+        </article>
+
+        <article class="panel">
+          <h3>Confirm payment</h3>
+          <label for="utrInput">Enter UTR / UPI Transaction ID</label>
+          <input id="utrInput" type="text" placeholder="Example: 416902123456" />
+          <button id="confirmUtrBtn" class="btn btn-primary" type="button">Confirm and Activate Plan</button>
+          <p class="small muted">Use this after completing UPI payment from your app.</p>
+        </article>
+      </div>
+
+      <article class="panel">
         <h3>Recent jobs</h3>
-        <ul id="jobs"></ul>
-      </div>
+        <ul id="jobs" class="job-list"></ul>
+      </article>
     </section>
   </main>
 
-  <footer class="footer">CommentMint India - UPI-first billing</footer>
+  <footer class="footer">
+    <div class="shell footer-grid">
+      <div>CommentMint India</div>
+      <div>Support: support@yourdomain.com</div>
+    </div>
+  </footer>
 
   <script src="app.js"></script>
 </body>
