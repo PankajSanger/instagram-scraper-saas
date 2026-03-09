@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CommentMint - Instagram Comments to CSV</title>
+  <title>CommentMint - Instagram Scraper</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -11,7 +11,7 @@
     <div class="shell topbar-inner">
       <div class="brand-wrap">
         <div class="brand">CommentMint</div>
-        <div class="tagline">Paste Instagram URL, fetch comments, download CSV</div>
+        <div class="tagline">Extension-first Instagram comments scraping</div>
       </div>
 
       <nav class="nav" aria-label="Main Navigation">
@@ -20,7 +20,10 @@
         <button class="nav-link" data-view-target="billing">Billing</button>
       </nav>
 
-      <div class="auth-actions" id="authActions"></div>
+      <div class="auth-actions">
+        <span id="connectionBadge" class="muted">API: checking...</span>
+        <div id="authActions"></div>
+      </div>
     </div>
   </header>
 
@@ -28,36 +31,32 @@
     <div id="appMessage" class="app-message hidden"></div>
 
     <section id="view-home" class="view is-active">
-      <div class="hero card">
-        <h1>Simple Instagram comment scraper for teams and creators</h1>
-        <p>Customers first install the scraper extension from this website, then use their account to fetch and export Instagram comments as CSV.</p>
-      </div>
+      <article class="hero card">
+        <h1>Install scraper, login, get API key, scrape comments.</h1>
+        <p>Simple and reliable flow for customers: download extension, sign in, copy API key, paste it in extension popup, scrape and export CSV from Instagram.</p>
+      </article>
 
       <div class="grid-3">
         <article class="card">
-          <h3>1. Get scraper</h3>
-          <p>Install from Chrome Web Store (recommended) or download ZIP directly.</p>
+          <h3>1. Download scraper</h3>
+          <p>Get extension from Chrome Store or ZIP.</p>
+          <div class="auth-actions">
+            <a class="btn btn-primary" href="https://chrome.google.com/webstore" target="_blank" rel="noopener">Chrome Store</a>
+            <a class="btn btn-ghost" href="/downloads/instagram-comments-scraper-v1.6.0.zip">Download ZIP</a>
+          </div>
         </article>
         <article class="card">
-          <h3>2. Create account</h3>
-          <p>Use email and password to sign up.</p>
+          <h3>2. Create credentials</h3>
+          <p>Sign up or sign in below to access Dashboard.</p>
         </article>
         <article class="card">
-          <h3>3. Upgrade when needed</h3>
-          <p>Free plan supports 1 post. Use Billing page for UPI upgrade.</p>
+          <h3>3. Use API key</h3>
+          <p>Copy API URL and API key from Dashboard and paste in extension popup.</p>
         </article>
       </div>
 
-      <div class="card">
-        <h3>Get The Scraper Extension</h3>
-        <p class="muted">Use Chrome Web Store for easiest install. ZIP is available for manual install too.</p>
-        <div class="auth-actions">
-          <a class="btn btn-primary" href="https://chrome.google.com/webstore" target="_blank" rel="noopener">Install From Chrome Store</a>
-          <a class="btn btn-ghost" href="/downloads/instagram-comments-scraper-v1.6.0.zip">Download ZIP</a>
-        </div>
-      </div>
-
-      <div class="card auth-card">
+      <article class="card auth-card">
+        <p id="authMessage" class="muted">Create account or sign in to continue.</p>
         <div class="auth-grid">
           <form id="signupForm">
             <h3>Create account</h3>
@@ -77,7 +76,7 @@
             <button id="loginBtn" type="submit" class="btn btn-secondary">Log in</button>
           </form>
         </div>
-      </div>
+      </article>
     </section>
 
     <section id="view-dashboard" class="view">
@@ -90,16 +89,31 @@
         </article>
 
         <article class="card">
-          <h3>Fetch comments</h3>
-          <label for="postUrlInput">Instagram post/reel URL</label>
-          <input id="postUrlInput" type="text" placeholder="https://www.instagram.com/p/..." />
-          <button id="fetchBtn" class="btn btn-primary" type="button">Fetch and Download CSV</button>
-          <p class="muted">Free plan: 1 post total. Paid plan required after that.</p>
+          <h3>Extension setup</h3>
+          <label>API URL</label>
+          <input id="apiUrlField" type="text" readonly />
+          <label>API Key</label>
+          <input id="apiKeyField" type="text" readonly placeholder="Generate API key after login" />
+          <div class="auth-actions">
+            <button id="generateKeyBtn" type="button" class="btn btn-primary">Generate API Key</button>
+            <button id="copyUrlBtn" type="button" class="btn btn-ghost">Copy API URL</button>
+            <button id="copyKeyBtn" type="button" class="btn btn-ghost">Copy API Key</button>
+          </div>
         </article>
       </div>
 
       <article class="card">
-        <h3>Recent fetches</h3>
+        <h3>How customer uses scraper</h3>
+        <ol class="list">
+          <li>Open extension popup on Instagram post/reel page.</li>
+          <li>Paste API URL and API key from above.</li>
+          <li>Click `Scrape Comments` in extension.</li>
+          <li>CSV downloads locally; history appears below if upload enabled.</li>
+        </ol>
+      </article>
+
+      <article class="card">
+        <h3>Recent scraper jobs</h3>
         <ul id="jobsList" class="list"></ul>
       </article>
     </section>
@@ -113,7 +127,7 @@
       <div class="grid-2">
         <article class="card">
           <h3>Create UPI payment request</h3>
-          <p id="paymentText">Select a paid plan to generate a UPI request.</p>
+          <p id="paymentText">Select a paid plan to generate UPI request.</p>
           <a id="upiLink" class="btn btn-primary hidden" target="_blank" rel="noopener">Open UPI App</a>
           <img id="upiQr" class="qr hidden" alt="UPI QR" />
           <p id="pendingPayment" class="muted"></p>

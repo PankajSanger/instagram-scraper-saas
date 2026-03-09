@@ -3,6 +3,7 @@ const TIMEOUT_MS = 20000;
 
 const state = {
   token: localStorage.getItem('cm_token') || '',
+  apiKey: localStorage.getItem('cm_api_key') || '',
   user: null,
   usage: null,
   freeUsed: false,
@@ -11,6 +12,7 @@ const state = {
 };
 
 const appMessage = document.getElementById('appMessage');
+const authMessage = document.getElementById('authMessage');
 const navLinks = Array.from(document.querySelectorAll('[data-view-target]'));
 const views = {
   home: document.getElementById('view-home'),
@@ -18,20 +20,22 @@ const views = {
   billing: document.getElementById('view-billing')
 };
 
+const connectionBadge = document.getElementById('connectionBadge');
 const authActions = document.getElementById('authActions');
-const showAuthBtn = document.getElementById('showAuth');
 
 const signupForm = document.getElementById('signupForm');
 const loginForm = document.getElementById('loginForm');
 const signupBtn = document.getElementById('signupBtn');
 const loginBtn = document.getElementById('loginBtn');
-const authMessage = document.getElementById('authMessage');
 
 const sessionText = document.getElementById('sessionText');
 const usageText = document.getElementById('usageText');
 const usageBar = document.getElementById('usageBar');
-const postUrlInput = document.getElementById('postUrlInput');
-const fetchBtn = document.getElementById('fetchBtn');
+const apiUrlField = document.getElementById('apiUrlField');
+const apiKeyField = document.getElementById('apiKeyField');
+const generateKeyBtn = document.getElementById('generateKeyBtn');
+const copyUrlBtn = document.getElementById('copyUrlBtn');
+const copyKeyBtn = document.getElementById('copyKeyBtn');
 const jobsList = document.getElementById('jobsList');
 
 const plansGrid = document.getElementById('plansGrid');
@@ -41,12 +45,21 @@ const upiQr = document.getElementById('upiQr');
 const pendingPayment = document.getElementById('pendingPayment');
 const utrInput = document.getElementById('utrInput');
 const confirmPaymentBtn = document.getElementById('confirmPaymentBtn');
-const connectionBadge = document.getElementById('connectionBadge');
+
+apiUrlField.value = API_BASE;
+if (state.apiKey) apiKeyField.value = state.apiKey;
 
 function setSessionToken(token) {
   state.token = token || '';
   if (token) localStorage.setItem('cm_token', token);
   else localStorage.removeItem('cm_token');
+}
+
+function setApiKey(apiKey) {
+  state.apiKey = apiKey || '';
+  if (state.apiKey) localStorage.setItem('cm_api_key', state.apiKey);
+  else localStorage.removeItem('cm_api_key');
+  apiKeyField.value = state.apiKey;
 }
 
 function authHeaders() {
@@ -99,16 +112,15 @@ function switchView(viewName) {
   navLinks.forEach((btn) => btn.classList.toggle('is-active', btn.dataset.viewTarget === viewName));
 }
 
-function ensureAuthFor(viewName) {
+function ensureAuthFor() {
   if (state.token) return true;
   switchView('home');
-  setMessage('Please sign in first to access Dashboard/Billing.', 'error');
+  setMessage('Please sign in first.', 'error');
   return false;
 }
 
 function renderAuthActions() {
   authActions.innerHTML = '';
-
   if (!state.token) {
     const note = document.createElement('span');
     note.className = 'muted';
@@ -127,6 +139,7 @@ function renderAuthActions() {
   logoutBtn.textContent = 'Logout';
   logoutBtn.addEventListener('click', () => {
     setSessionToken('');
+    setApiKey('');
     state.user = null;
     state.usage = null;
     state.freeUsed = false;
@@ -145,7 +158,7 @@ function renderDashboard() {
     sessionText.textContent = 'Not logged in';
     usageText.textContent = 'Usage unavailable';
     usageBar.style.width = '0%';
-    jobsList.innerHTML = '<li>Log in to view fetch history</li>';
+    jobsList.innerHTML = '<li>Login to see scraper job history</li>';
     return;
   }
 
@@ -156,21 +169,22 @@ function renderDashboard() {
 
   const currentPlan = state.plans.find((p) => p.id === state.user.plan);
   const maxJobs = Number(currentPlan?.monthlyJobs || 0);
-  const percent = maxJobs > 0 ? Math.min(100, Math.round((state.usage.jobsUsed / maxJobs) * 100)) : 0;
-  usageBar.style.width = `${percent}%`;
+  const pct = maxJobs > 0 ? Math.min(100, Math.round((state.usage.jobsUsed / maxJobs) * 100)) : 0;
+  usageBar.style.width = `${pct}%`;
+
+  apiKeyField.value = state.apiKey || '';
 }
 
 function renderJobs(jobs) {
   jobsList.innerHTML = '';
   if (!jobs.length) {
-    jobsList.innerHTML = '<li>No fetches yet</li>';
+    jobsList.innerHTML = '<li>No scraper jobs yet</li>';
     return;
   }
-
   jobs.slice(0, 10).forEach((job) => {
-    const item = document.createElement('li');
-    item.textContent = `${new Date(job.createdAt).toLocaleString('en-IN')} - ${job.rowsCount} comments - ${job.metadata?.postUrl || ''}`;
-    jobsList.appendChild(item);
+    const li = document.createElement('li');
+    li.textContent = `${new Date(job.createdAt).toLocaleString('en-IN')} - ${job.rowsCount} rows`;
+    jobsList.appendChild(li);
   });
 }
 
@@ -203,7 +217,7 @@ function renderPlans() {
 
   Array.from(document.querySelectorAll('[data-plan]')).forEach((btn) => {
     btn.addEventListener('click', async () => {
-      if (!ensureAuthFor('billing')) return;
+      if (!ensureAuthFor()) return;
       await createPaymentRequest(btn.dataset.plan, btn);
     });
   });
@@ -211,7 +225,7 @@ function renderPlans() {
 
 function resetPaymentUi() {
   state.paymentRequest = null;
-  paymentText.textContent = 'Select a paid plan to generate a UPI request.';
+  paymentText.textContent = 'Select a paid plan to generate UPI request.';
   upiLink.classList.add('hidden');
   upiLink.removeAttribute('href');
   upiQr.classList.add('hidden');
@@ -219,48 +233,85 @@ function resetPaymentUi() {
   pendingPayment.textContent = '';
 }
 
+async function refreshSessionData() {
+  if (!state.token) {
+    state.user = null;
+    state.usage = null;
+    state.freeUsed = false;
+    return;
+  }
+
+  const meResp = await fetchJson('/me', { headers: authHeaders() });
+  state.user = meResp.user;
+  state.usage = meResp.usage;
+  state.freeUsed = Boolean(meResp.freeUsed);
+
+  try {
+    const jobsResp = await fetchJson('/jobs', { headers: authHeaders() });
+    renderJobs(jobsResp.jobs || []);
+  } catch {
+    renderJobs([]);
+  }
+}
+
 async function loadInitialData() {
   try {
     const plansResp = await fetchJson('/plans');
     state.plans = plansResp.plans || [];
     connectionBadge.textContent = 'API connected';
-    connectionBadge.style.background = '#ecfdf5';
-    connectionBadge.style.border = '1px solid #a7f3d0';
     connectionBadge.style.color = '#065f46';
   } catch {
+    state.plans = [];
     connectionBadge.textContent = 'API unavailable';
-    connectionBadge.style.background = '#fff1f2';
-    connectionBadge.style.border = '1px solid #fecdd3';
     connectionBadge.style.color = '#9f1239';
   }
 
-  renderPlans();
-
-  if (!state.token) {
-    renderAuthActions();
-    renderDashboard();
-    return;
-  }
-
   try {
-    const meResp = await fetchJson('/me', { headers: authHeaders() });
-    state.user = meResp.user;
-    state.usage = meResp.usage;
-    state.freeUsed = Boolean(meResp.freeUsed);
-
-    const jobsResp = await fetchJson('/jobs', { headers: authHeaders() });
-    renderJobs(jobsResp.jobs || []);
+    await refreshSessionData();
   } catch {
     setSessionToken('');
+    setApiKey('');
     state.user = null;
     state.usage = null;
     state.freeUsed = false;
-    setMessage('Session expired. Please sign in again.', 'error');
   }
 
   renderAuthActions();
   renderDashboard();
   renderPlans();
+}
+
+async function generateApiKey() {
+  if (!ensureAuthFor()) return;
+
+  setButtonLoading(generateKeyBtn, true, 'Generating...', 'Generate API Key');
+  try {
+    const res = await fetchJson('/auth/api-key/rotate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() }
+    });
+
+    setApiKey(res.apiKey || '');
+    setMessage('API key generated. Paste it in extension popup.', 'ok');
+    switchView('dashboard');
+  } catch (err) {
+    setMessage(`API key generation failed: ${err.message}`, 'error');
+  } finally {
+    setButtonLoading(generateKeyBtn, false, '', 'Generate API Key');
+  }
+}
+
+async function copyText(text, label) {
+  if (!text) {
+    setMessage(`${label} is empty.`, 'error');
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    setMessage(`${label} copied.`, 'ok');
+  } catch {
+    setMessage(`Could not copy ${label.toLowerCase()}.`, 'error');
+  }
 }
 
 async function createPaymentRequest(plan, triggerBtn) {
@@ -290,7 +341,7 @@ async function createPaymentRequest(plan, triggerBtn) {
 }
 
 async function confirmPayment() {
-  if (!ensureAuthFor('billing')) return;
+  if (!ensureAuthFor()) return;
   if (!state.paymentRequest?.paymentId) {
     setMessage('Create a payment request first.', 'error');
     return;
@@ -321,62 +372,13 @@ async function confirmPayment() {
   }
 }
 
-function downloadCsv(content, filename) {
-  const blob = new Blob([`\uFEFF${content}`], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename || `comments_${Date.now()}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 3000);
-}
-
-async function fetchComments() {
-  if (!ensureAuthFor('dashboard')) return;
-
-  const postUrl = (postUrlInput.value || '').trim();
-  if (!postUrl) {
-    setMessage('Please paste an Instagram post URL.', 'error');
-    return;
-  }
-
-  setButtonLoading(fetchBtn, true, 'Fetching...', 'Fetch and Download CSV');
-  try {
-    const res = await fetchJson('/comments/fetch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify({ postUrl })
-    });
-
-    downloadCsv(res.csv, res.filename);
-    setMessage(`Success. ${res.rowsCount} comments fetched. CSV downloaded.`, 'ok');
-    await loadInitialData();
-  } catch (err) {
-    if (String(err.message).includes('free_limit_reached')) {
-      setMessage('Free limit reached. Please upgrade in Billing to continue.', 'error');
-      switchView('billing');
-    } else {
-      setMessage(`Fetch failed: ${err.message}`, 'error');
-    }
-  } finally {
-    setButtonLoading(fetchBtn, false, '', 'Fetch and Download CSV');
-  }
-}
-
 navLinks.forEach((btn) => {
   btn.addEventListener('click', () => {
     const target = btn.dataset.viewTarget;
-    if ((target === 'dashboard' || target === 'billing') && !ensureAuthFor(target)) return;
+    if ((target === 'dashboard' || target === 'billing') && !ensureAuthFor()) return;
     switchView(target);
     clearMessage();
   });
-});
-
-showAuthBtn.addEventListener('click', () => {
-  switchView('home');
-  window.scrollTo({ top: document.body.scrollHeight * 0.2, behavior: 'smooth' });
 });
 
 signupForm.addEventListener('submit', async (e) => {
@@ -399,7 +401,8 @@ signupForm.addEventListener('submit', async (e) => {
     });
 
     setSessionToken(res.token);
-    setMessage('Account created and logged in.', 'ok', authMessage);
+    setApiKey(res.apiKey || '');
+    setMessage('Account created. API key is ready in Dashboard.', 'ok', authMessage);
     await loadInitialData();
     switchView('dashboard');
   } catch (err) {
@@ -429,7 +432,8 @@ loginForm.addEventListener('submit', async (e) => {
     });
 
     setSessionToken(res.token);
-    setMessage('Logged in successfully.', 'ok', authMessage);
+    setApiKey(localStorage.getItem('cm_api_key') || '');
+    setMessage('Logged in. Generate API key from Dashboard if needed.', 'ok', authMessage);
     await loadInitialData();
     switchView('dashboard');
   } catch (err) {
@@ -439,7 +443,9 @@ loginForm.addEventListener('submit', async (e) => {
   }
 });
 
-fetchBtn.addEventListener('click', fetchComments);
+generateKeyBtn.addEventListener('click', generateApiKey);
+copyUrlBtn.addEventListener('click', () => copyText(API_BASE, 'API URL'));
+copyKeyBtn.addEventListener('click', () => copyText(state.apiKey, 'API key'));
 confirmPaymentBtn.addEventListener('click', confirmPayment);
 
 (async function init() {

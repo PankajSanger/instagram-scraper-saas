@@ -219,6 +219,76 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === 'POST' && url.pathname === '/scrape-jobs') {
+      const apiKeyHeader = req.headers['x-api-key'];
+      if (!apiKeyHeader) {
+        sendJson(res, 401, { error: 'missing_api_key' });
+        return;
+      }
+
+      const body = await parseJsonBody(req);
+      const rows = Array.isArray(body.rows) ? body.rows : [];
+      const metadata = body.metadata || {};
+
+      let output;
+      withDb((db) => {
+        const apiHash = hashApiKey(String(apiKeyHeader));
+        const user = db.users.find((u) => u.apiKeyHash === apiHash);
+
+        if (!user) {
+          output = { status: 401, body: { error: 'invalid_api_key' } };
+          return;
+        }
+
+        const sub = getUserSubscription(db, user.id);
+        const check = canConsumeUsage(db, user.id, sub.plan, rows.length);
+        if (!check.allowed) {
+          output = {
+            status: 402,
+            body: {
+              error: 'plan_limit_exceeded',
+              details: {
+                exceededJobs: check.exceededJobs,
+                exceededRowsPerJob: check.exceededRowsPerJob,
+                limits: check.limits,
+                usage: check.usage,
+                plan: sub.plan
+              }
+            }
+          };
+          return;
+        }
+
+        const job = {
+          id: crypto.randomUUID(),
+          userId: user.id,
+          rowsCount: rows.length,
+          sourceType: 'extension',
+          metadata,
+          createdAt: new Date().toISOString(),
+          sample: rows.slice(0, 5)
+        };
+
+        db.jobs.push(job);
+        const usage = consumeUsage(db, user.id, rows.length);
+
+        output = {
+          status: 201,
+          body: {
+            ok: true,
+            jobId: job.id,
+            rowsStored: rows.length,
+            usage,
+            plan: sub.plan,
+            expiresAt: sub.expiresAt
+          }
+        };
+      });
+
+      sendJson(res, output.status, output.body);
+      return;
+    }
+
     if (req.method === 'POST' && url.pathname === '/comments/fetch') {
       const auth = requireAuth(req, res, sendJson);
       if (!auth) return;
